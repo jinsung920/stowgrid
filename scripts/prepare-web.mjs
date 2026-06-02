@@ -8,6 +8,9 @@ const out = join(root, 'www');
 const files = [
   'index.html',
   'styles.css',
+  'manual.html',
+  'manual.css',
+  'manual.js',
   'i18n.js',
   'data.js',
   'packer.js',

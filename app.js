@@ -361,6 +361,12 @@ const App = (() => {
 
   const t = (key, vars) => I18N.t(key, vars);
 
+  function updateManualLink() {
+    const link = document.getElementById('manualLink');
+    if (!link) return;
+    link.href = `manual.html?lang=${encodeURIComponent(I18N.getLang())}`;
+  }
+
   function initLangSelect() {
     const sel = document.getElementById('langSelect');
     sel.innerHTML = '';
@@ -375,9 +381,11 @@ const App = (() => {
 
     // Apply current dictionary to static HTML
     I18N.applyAll();
+    updateManualLink();
     // Re-render dynamic content when language changes
     I18N.onChange((lang) => {
       I18N.applyAll();
+      updateManualLink();
       // Sync dropdown in case the language was changed programmatically.
       const ls = document.getElementById('langSelect');
       if (ls && ls.value !== lang) ls.value = lang;
