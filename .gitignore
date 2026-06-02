@@ -1,0 +1,13 @@
+/.claude/
+node_modules/
+www/
+android/.gradle/
+android/.idea/
+android/local.properties
+android/app/build/
+android/app/release/
+android/build/
+*.keystore
+*.jks
+*.aab
+*.apk

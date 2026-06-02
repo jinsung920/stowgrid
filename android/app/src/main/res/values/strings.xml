@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Adam_Choi 컨테이너 선적 시뮬레이터</string>
+    <string name="title_activity_main">Adam_Choi 컨테이너 선적 시뮬레이터</string>
+    <string name="package_name">com.adamchoi.containerloader</string>
+    <string name="custom_url_scheme">com.adamchoi.containerloader</string>
+</resources>

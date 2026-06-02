@@ -1,0 +1,21 @@
+{
+  "name": "adam-choi-container-loader",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Adam_Choi container loading simulator packaged for web and Android.",
+  "scripts": {
+    "prepare:web": "node scripts/prepare-web.mjs",
+    "cap:add:android": "node scripts/prepare-web.mjs && npx cap add android",
+    "cap:sync:android": "node scripts/prepare-web.mjs && npx cap sync android",
+    "cap:open:android": "npx cap open android",
+    "android:bundle": "node scripts/prepare-web.mjs && cd android && gradlew.bat bundleRelease",
+    "android:apk:debug": "node scripts/prepare-web.mjs && cd android && gradlew.bat assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/core": "^8.3.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.3.4"
+  }
+}

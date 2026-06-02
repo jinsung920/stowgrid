@@ -1,0 +1,8 @@
+{
+  "appId": "com.adamchoi.containerloader",
+  "appName": "Adam_Choi 컨테이너 선적 시뮬레이터",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}

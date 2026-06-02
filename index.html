@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adam_Choi 컨테이너 선적 시뮬레이터 | Container Loading Simulator</title>
+<link rel="stylesheet" href="styles.css?v=20260531g">
+</head>
+<body>
+<header>
+  <h1 data-i18n="title">Adam_Choi 컨테이너 선적 시뮬레이터</h1>
+  <a class="contact-link" href="https://t.me/adamdamc" target="_blank" rel="noopener noreferrer">문의</a>
+  <span class="sub" data-i18n="subtitle">Auto CBM Calculator & 3D Loading Simulator</span>
+  <div class="header-actions">
+    <label class="lang-picker" data-i18n-title="lang_label">
+      <span class="lang-icon">🌐</span>
+      <select id="langSelect"></select>
+    </label>
+    <button id="printReport" class="manual-link" type="button" data-i18n="btn_print" data-i18n-title="btn_print_title">🖨 인쇄 / PDF</button>
+    <a id="manualLink" class="manual-link" href="사용설명서_v4.docx" download data-i18n="manual">📘 사용 설명서</a>
+  </div>
+</header>
+
+<main>
+  <section class="panel left-panel">
+    <div class="block">
+      <h2><span data-i18n="section_container">① 컨테이너 설정</span> <span class="en" data-i18n="section_container_en">Container Settings</span></h2>
+      <div class="fleet-editor">
+        <div class="fleet-title" data-i18n="fleet_label">🚛 사용할 컨테이너 (Fleet)</div>
+        <div class="fleet-row">
+          <label data-i18n="container_20gp">20ft GP (5898×2352×2393mm, 28T)</label>
+          <input type="number" id="fleet-20GP" class="fleet-input" min="0" max="99" step="1" value="0">
+          <span class="fleet-unit" data-i18n="unit_containers">대</span>
+        </div>
+        <div class="fleet-row">
+          <label data-i18n="container_40gp">40ft GP (12032×2352×2393mm, 26.5T)</label>
+          <input type="number" id="fleet-40GP" class="fleet-input" min="0" max="99" step="1" value="0">
+          <span class="fleet-unit" data-i18n="unit_containers">대</span>
+        </div>
+        <div class="fleet-row">
+          <label data-i18n="container_40hc">40ft HC (12032×2352×2698mm, 26.5T)</label>
+          <input type="number" id="fleet-40HC" class="fleet-input" min="0" max="99" step="1" value="1">
+          <span class="fleet-unit" data-i18n="unit_containers">대</span>
+        </div>
+        <div class="fleet-actions">
+          <button id="fleetAuto" class="btn small" data-i18n="btn_fleet_auto" data-i18n-title="btn_fleet_auto_title">↻ 자동 채우기</button>
+          <button id="fleetClear" class="btn small" data-i18n="btn_fleet_clear">✕ 모두 0</button>
+          <span id="fleetSummary" class="fleet-summary"></span>
+        </div>
+      </div>
+      <div class="form-row">
+        <label data-i18n="loading_efficiency">적재 효율 (Loading Efficiency)</label>
+        <input type="number" id="efficiency" min="50" max="100" step="1" value="85"> %
+      </div>
+    </div>
+
+    <div class="block">
+      <h2><span data-i18n="section_products">② 제품 입력</span> <span class="en" data-i18n="section_products_en">Product Mix Input</span></h2>
+      <div class="table-wrap">
+        <table id="productTable">
+          <colgroup>
+            <col data-col="num"    style="width: 40px">
+            <col data-col="code"   style="width: 110px">
+            <col data-col="name"   style="width: 200px">
+            <col data-col="L"      style="width: 60px">
+            <col data-col="W"      style="width: 60px">
+            <col data-col="H"      style="width: 60px">
+            <col data-col="weight" style="width: 60px">
+            <col data-col="qty"    style="width: 64px">
+            <col data-col="loadOrder" style="width: 76px">
+            <col data-col="zone"   style="width: 96px">
+            <col data-col="cbm"    style="width: 76px">
+            <col data-col="total"  style="width: 80px">
+            <col data-col="moveup" style="width: 32px">
+            <col data-col="del"    style="width: 36px">
+          </colgroup>
+          <thead>
+            <tr>
+              <th data-i18n="col_no">#</th>
+              <th data-i18n="col_code">코드 (Code)</th>
+              <th data-i18n="col_name">제품명 (Product)</th>
+              <th data-i18n="col_l">L (mm)</th>
+              <th data-i18n="col_w">W (mm)</th>
+              <th data-i18n="col_h">H (mm)</th>
+              <th data-i18n="col_weight">중량 (kg)</th>
+              <th data-i18n="col_qty">수량 (Qty)</th>
+              <th data-i18n="col_load_order" data-i18n-title="col_load_order_title">순번</th>
+              <th data-i18n="col_zone" data-i18n-title="col_zone_title">구역</th>
+              <th data-i18n="col_cbm_per">CBM/박스</th>
+              <th data-i18n="col_total_cbm">Total CBM</th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="productBody"></tbody>
+        </table>
+      </div>
+      <div class="actions">
+        <button id="addProduct" class="btn" data-i18n="btn_add_product">＋ 제품 추가</button>
+        <button id="loadSample" class="btn secondary" data-i18n="btn_load_sample">샘플 불러오기</button>
+        <button id="clearAll" class="btn warning" data-i18n="btn_clear_all">초기화</button>
+        <button id="resetColWidths" class="btn small" title="제품 입력 표의 열 너비를 기본값으로 되돌립니다">🔧</button>
+      </div>
+      <div class="presets">
+        <span class="presets-label" data-i18n="excel_section_label">📋 엑셀:</span>
+        <button id="openPaste" class="btn small" data-i18n="btn_paste_excel">📋 엑셀 붙여넣기</button>
+        <button id="openMaster" class="btn small"><span data-i18n="btn_master">📚 제품 마스터</span> <span id="masterBadge" class="badge">0</span></button>
+      </div>
+      <div class="presets">
+        <span class="presets-label" data-i18n="save_load_label">💾 저장 / 불러오기:</span>
+        <select id="presetSelect"><option value="" data-i18n="preset_placeholder">— 저장 목록 —</option></select>
+        <button id="loadPreset" class="btn small" data-i18n="btn_load">📂 불러오기</button>
+        <button id="savePreset" class="btn small" data-i18n="btn_save_new">＋ 새로 저장</button>
+        <button id="overwritePreset" class="btn small" data-i18n="btn_overwrite" data-i18n-title="btn_overwrite_title">↻ 덮어쓰기</button>
+        <button id="deletePreset" class="btn small warning" data-i18n="btn_delete">🗑 삭제</button>
+        <button id="exportPresetCsv" class="btn small" data-i18n="btn_csv_download" data-i18n-title="btn_csv_download_title">📤 CSV 다운로드</button>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2><span data-i18n="section_result">③ 계산 결과</span> <span class="en" data-i18n="section_result_en">Calculation Result</span></h2>
+      <div class="result-grid">
+        <div class="stat">
+          <div class="stat-label" data-i18n="stat_total_qty">총 박스 수</div>
+          <div class="stat-value" id="totalQty">0</div>
+          <div class="stat-unit" data-i18n="unit_cartons">cartons</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label" data-i18n="stat_total_cbm">총 CBM</div>
+          <div class="stat-value" id="totalCbm">0.000</div>
+          <div class="stat-unit">m³</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label" data-i18n="stat_total_weight">총 중량</div>
+          <div class="stat-value" id="totalWeight">0.0</div>
+          <div class="stat-unit" data-i18n="unit_kg">kg</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label" data-i18n="stat_fleet_total">지정 함대</div>
+          <div class="stat-value" id="neededContainers">0</div>
+          <div class="stat-unit" data-i18n="unit_containers">대</div>
+        </div>
+      </div>
+
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th data-i18n="sum_col_container">Container</th>
+            <th data-i18n="sum_col_usable">Usable CBM</th>
+            <th data-i18n="sum_col_vol_qty">Vol Qty</th>
+            <th data-i18n="sum_col_wt_qty">Wt Qty</th>
+            <th data-i18n="sum_col_recommend">추천</th>
+            <th data-i18n="sum_col_rate">적재율</th>
+          </tr>
+        </thead>
+        <tbody id="containerSummary"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel right-panel">
+    <div class="viewer-header">
+      <h2><span data-i18n="section_3d">3D 선적 시뮬레이션</span> <span class="en" data-i18n="section_3d_en">3D Simulation</span></h2>
+      <div class="viewer-actions">
+        <button id="packBtn" class="btn primary" data-i18n="btn_run_sim">🚛 적재 시뮬레이션 실행</button>
+        <select id="containerIndex" class="container-pick" data-i18n-title="pick_container_title" style="display:none"></select>
+        <button id="viewTop" class="btn small" data-i18n="btn_view_top" data-i18n-title="btn_view_top_title">▦ Top</button>
+        <button id="viewSide" class="btn small" data-i18n="btn_view_side" data-i18n-title="btn_view_side_title">◧ Side</button>
+        <button id="viewIso" class="btn small" data-i18n="btn_view_iso" data-i18n-title="btn_view_iso_title">◰ Iso</button>
+      </div>
+    </div>
+
+    <div id="viewer" class="viewer"></div>
+
+    <div class="viewer-footer">
+      <div id="packInfo" class="pack-info" data-i18n="sim_init_hint">제품을 입력 후 [적재 시뮬레이션]을 클릭하세요.</div>
+      <div id="legend" class="legend"></div>
+    </div>
+  </section>
+</main>
+
+<!-- Paste Modal -->
+<div id="pasteModal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 data-i18n="paste_modal_title">📋 엑셀 데이터 붙여넣기</h3>
+      <button class="modal-close" data-close="pasteModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-hint" data-i18n-html="paste_modal_hint"></p>
+      <textarea id="pasteArea" rows="7" data-i18n-ph="paste_area_placeholder"></textarea>
+      <div class="paste-options">
+        <label><input type="checkbox" id="pasteUseMaster" checked> <span data-i18n="paste_opt_use_master">마스터에서 치수 자동 채우기</span></label>
+        <label><input type="checkbox" id="pasteRegisterMaster" checked> <span data-i18n="paste_opt_register_master">새 코드를 마스터에 자동 등록</span></label>
+      </div>
+      <div id="pastePreview" class="paste-preview"></div>
+    </div>
+    <div class="modal-footer">
+      <button id="pasteAppend" class="btn primary" disabled data-i18n="btn_paste_append">＋ 현재 표에 추가</button>
+      <button id="pasteReplace" class="btn warning" disabled data-i18n="btn_paste_replace">↻ 표 전체 교체</button>
+      <button class="btn" data-close="pasteModal" data-i18n="btn_cancel">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- Master Modal -->
+<div id="masterModal" class="modal hidden">
+  <div class="modal-card large">
+    <div class="modal-header">
+      <h3 data-i18n="master_modal_title">📚 제품 마스터 (제품 사전)</h3>
+      <button class="modal-close" data-close="masterModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="master-actions">
+        <input id="masterSearch" type="text" data-i18n-ph="master_search_placeholder">
+        <button id="masterAdd" class="btn small" data-i18n="btn_master_add">＋ 새 항목</button>
+        <button id="masterSeed" class="btn small secondary" data-i18n="btn_master_seed">현재 표에서 추가</button>
+        <button id="masterImport" class="btn small" data-i18n="btn_master_import">📥 CSV 가져오기</button>
+        <button id="masterExport" class="btn small" data-i18n="btn_master_export">📤 CSV 내보내기</button>
+        <button id="masterClear" class="btn small warning" data-i18n="btn_master_clear">🗑 전체 삭제</button>
+        <input type="file" id="masterImportFile" accept=".csv,.txt" style="display:none">
+      </div>
+      <div class="master-select-bar">
+        <span id="masterSelInfo" class="sel-info"><span data-i18n="master_sel_prefix">선택: </span><strong id="masterSelCount">0</strong><span data-i18n="master_sel_suffix">개</span></span>
+        <label class="sel-qty"><span data-i18n="master_qty_label">기본 수량</span> <input id="masterAddQty" type="number" min="1" step="1" value="1"></label>
+        <button id="masterAddToInput" class="btn small primary" disabled data-i18n="btn_master_add_to_input">→ 선택 항목을 제품 입력에 추가</button>
+        <button id="masterSelectAll" class="btn small" data-i18n="btn_master_select_all">전체 선택</button>
+        <button id="masterClearSel" class="btn small" data-i18n="btn_master_clear_sel">선택 해제</button>
+      </div>
+      <div id="masterCount" class="master-count"></div>
+      <div class="table-wrap" style="max-height: 45vh;">
+        <table id="masterTable">
+          <thead>
+            <tr>
+              <th class="col-check"><input type="checkbox" id="masterCheckAll" data-i18n-title="master_check_all_title"></th>
+              <th data-i18n="col_code">코드</th>
+              <th data-i18n="col_name">제품명</th>
+              <th data-i18n="col_l">L (mm)</th>
+              <th data-i18n="col_w">W (mm)</th>
+              <th data-i18n="col_h">H (mm)</th>
+              <th data-i18n="col_weight">중량 (kg)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="masterBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span class="hint" data-i18n="master_footer_hint">💡 한 번 등록한 코드는 이후 엑셀 붙여넣기 시 치수를 자동으로 채웁니다.</span>
+      <button class="btn" data-close="masterModal" data-i18n="btn_close">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- Hidden on screen, shown only when printing — populated by App.printReport() -->
+<section id="reportPrint" aria-hidden="true"></section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="i18n.js?v=20260531g"></script>
+<script src="data.js?v=20260531c"></script>
+<script src="packer.js?v=20260531e"></script>
+<script src="viewer.js?v=20260531c"></script>
+<script src="app.js?v=20260531f"></script>
+</body>
+</html>
