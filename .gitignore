@@ -11,3 +11,11 @@ android/build/
 *.jks
 *.aab
 *.apk
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.crt
+*.cer
+keystore.properties
