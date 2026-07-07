@@ -222,7 +222,7 @@ table {
   border-collapse: collapse;
   font-size: 12px;
 }
-#productTable { min-width: 1064px; table-layout: fixed; }
+#productTable { min-width: 1156px; table-layout: fixed; }
 #productTable th { position: relative; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 #productTable td { overflow: hidden; }
 #productTable td input {
@@ -230,7 +230,8 @@ table {
   min-width: 0;
 }
 #productTable td select.col-zone,
-#productTable td select.col-load-order {
+#productTable td select.col-load-order,
+#productTable td select.col-floor-face {
   width: 100%;
   background: #0f1419;
   color: #e5e8eb;
@@ -243,11 +244,14 @@ table {
   outline: none;
 }
 #productTable td select.col-zone:hover,
-#productTable td select.col-load-order:hover { border-color: #4fc3f7; }
+#productTable td select.col-load-order:hover,
+#productTable td select.col-floor-face:hover { border-color: #4fc3f7; }
 #productTable td select.col-zone:focus,
-#productTable td select.col-load-order:focus { border-color: #4fc3f7; box-shadow: 0 0 0 1px #4fc3f7; }
+#productTable td select.col-load-order:focus,
+#productTable td select.col-floor-face:focus { border-color: #4fc3f7; box-shadow: 0 0 0 1px #4fc3f7; }
 #productTable td select.col-zone option,
-#productTable td select.col-load-order option { background: #161d29; color: #e5e8eb; }
+#productTable td select.col-load-order option,
+#productTable td select.col-floor-face option { background: #161d29; color: #e5e8eb; }
 /* Hide native spinner buttons on number inputs — they steal 14-16px of width */
 #productTable td input[type=number]::-webkit-inner-spin-button,
 #productTable td input[type=number]::-webkit-outer-spin-button {
@@ -645,6 +649,12 @@ tbody input[type=number] { text-align: right; }
 @media print {
   /* Hide everything except the report on paper. */
   body > *:not(#reportPrint) { display: none !important; }
+  html,
+  body {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
   body { background: #fff !important; color: #000 !important; }
 
   @page {
@@ -654,6 +664,10 @@ tbody input[type=number] { text-align: right; }
 
   #reportPrint {
     display: block !important;
+    position: static !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
     color: #000 !important;
     font-family: 'Segoe UI', 'Malgun Gothic', 'Yu Gothic', '微软雅黑', sans-serif;
     font-size: 10pt;

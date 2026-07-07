@@ -147,6 +147,7 @@ const Paste = (() => {
     H:      ['h', 'height', '높이', 'hmm', 'h높이'],
     weight: ['weight', '중량', '무게', 'kg', 'weightkg', 'kgcarton', 'kgct', '중량kg', '무게kg', 'weightperctn', 'kgperctn'],
     qty:    ['qty', 'quantity', '수량', '주문량', 'qtyea', 'orderqty', 'pcs', 'cartons', 'ctn'],
+    floorFace: ['floorface', 'floor face', 'bottomface', 'bottom face', 'baseface', 'base face', 'floor', 'bottom', '바닥면', '바닥', '면방향'],
     loadOrder: ['순번', '적재순번', '적재순서', '순서', 'order', 'loadorder', 'loadingorder', 'priority', 'seq', 'sequence'],
     zone:   ['zone', '구역', 'area', 'region', '区域', 'vùng', 'ゾーン', '위치', 'position'],
   };
@@ -173,6 +174,24 @@ const Paste = (() => {
     if (!s || s === '-' || s === '—' || s === 'free' || s === 'any' || s === '자유') return '';
     const n = parseInt(s.replace(/,/g, ''), 10);
     return Number.isFinite(n) && n > 0 ? n : '';
+  }
+
+  function normalizeFloorFace(raw) {
+    if (raw === undefined || raw === null) return 'auto';
+    const s = String(raw).trim().toLowerCase().replace(/[×x*\s_\-\/]/g, '');
+    if (!s || s === 'auto' || s === 'any' || s === 'free' || s === '자동' || s === '자유') return 'auto';
+    if (s === 'lw' || s === 'lengthwidth' || s === '길이너비' || s === '가로세로') return 'LW';
+    if (s === 'lh' || s === 'lengthheight' || s === '길이높이') return 'LH';
+    if (s === 'wh' || s === 'widthheight' || s === '너비높이' || s === '폭높이') return 'WH';
+    return 'auto';
+  }
+
+  function looksLikeFloorFace(raw) {
+    if (raw === undefined || raw === null) return false;
+    const s = String(raw).trim().toLowerCase().replace(/[×x*\s_\-\/]/g, '');
+    return ['auto', 'any', 'free', '자동', '자유', 'lw', 'lh', 'wh',
+      'lengthwidth', 'lengthheight', 'widthheight', '길이너비', '길이높이',
+      '너비높이', '폭높이', '가로세로'].includes(s);
   }
 
   function normalize(s) {
@@ -251,13 +270,14 @@ const Paste = (() => {
 
     dataRows.forEach((row, ri) => {
       if (row.every(c => !c)) return; // skip blank
-      const p = { code: '', name: '', L: 0, W: 0, H: 0, weight: 0, qty: 1, loadOrder: '', zone: 'any' };
+      const p = { code: '', name: '', L: 0, W: 0, H: 0, weight: 0, qty: 1, floorFace: 'auto', loadOrder: '', zone: 'any' };
       for (const [colIdx, field] of Object.entries(mapping)) {
         const val = row[+colIdx];
         if (val === undefined || val === '') continue;
         if (field === 'code' || field === 'name') p[field] = String(val).trim();
         else if (field === 'zone') p.zone = normalizeZone(val);
         else if (field === 'loadOrder') p.loadOrder = normalizeLoadOrder(val);
+        else if (field === 'floorFace') p.floorFace = normalizeFloorFace(val);
         else {
           const n = parseFloat(String(val).replace(/,/g, ''));
           if (!isNaN(n)) p[field] = n;
@@ -273,6 +293,17 @@ const Paste = (() => {
           p.loadOrder = maybeOrder;
           p.zone = maybeZone;
         }
+      }
+      // New no-header order with floor face:
+      // Code, Name, L, W, H, FloorFace, Weight, Qty, Order, Zone.
+      if (!hadHeader && row.length >= 10 && looksLikeFloorFace(row[5])) {
+        p.floorFace = normalizeFloorFace(row[5]);
+        const weight = parseFloat(String(row[6] || '').replace(/,/g, ''));
+        const qty = parseFloat(String(row[7] || '').replace(/,/g, ''));
+        if (!isNaN(weight)) p.weight = weight;
+        if (!isNaN(qty)) p.qty = qty;
+        p.loadOrder = normalizeLoadOrder(row[8]);
+        p.zone = normalizeZone(row[9]);
       }
       // Default qty to 1 if not supplied
       if (!('qty' in mapping) || !p.qty) p.qty = p.qty || 1;
@@ -311,7 +342,7 @@ const Paste = (() => {
     return { products, warnings, mapping, hadHeader, masterFilled, newToMaster };
   }
 
-  return { parse, rowsToProducts, detectMapping, findField, isHeaderRow, ALIASES, normalizeZone, VALID_ZONES };
+  return { parse, rowsToProducts, detectMapping, findField, isHeaderRow, ALIASES, normalizeZone, normalizeFloorFace, VALID_ZONES };
 })();
 
 // ============================================================================
@@ -351,7 +382,7 @@ const App = (() => {
   // Keys must match `data-col` attributes on <col> elements.
   const DEFAULT_COL_WIDTHS = {
     num: '40px', code: '110px', name: '200px',
-    L: '60px', W: '60px', H: '60px',
+    L: '60px', W: '60px', H: '60px', floorFace: '92px',
     weight: '60px', qty: '64px', loadOrder: '76px', zone: '96px',
     cbm: '76px', total: '80px',
     moveup: '32px', del: '36px',
@@ -442,11 +473,16 @@ const App = (() => {
     return Number.isFinite(n) && n > 0 ? n : '';
   }
 
+  function normalizeFloorFaceValue(value) {
+    return Paste.normalizeFloorFace(value);
+  }
+
   function normalizeProductRow(p) {
     return {
       ...p,
       zone: normalizeZoneValue(p.zone),
       loadOrder: normalizeLoadOrderValue(p.loadOrder),
+      floorFace: normalizeFloorFaceValue(p.floorFace),
     };
   }
 
@@ -893,6 +929,7 @@ const App = (() => {
         <th>${escapeHtml(t('col_l'))}</th>
         <th>${escapeHtml(t('col_w'))}</th>
         <th>${escapeHtml(t('col_h'))}</th>
+        <th>${escapeHtml(t('col_floor_face'))}</th>
         <th>${escapeHtml(t('col_weight'))}</th>
         <th>${escapeHtml(t('col_qty'))}</th>
         <th>${escapeHtml(t('col_load_order'))}</th>
@@ -903,6 +940,7 @@ const App = (() => {
           <td style="color:#ffc107">${escapeHtml(p.code)}</td>
           <td>${escapeHtml(p.name)}</td>
           <td>${p.L}</td><td>${p.W}</td><td>${p.H}</td>
+          <td>${escapeHtml(floorFaceLabel(p.floorFace))}</td>
           <td>${p.weight}</td><td><strong>${p.qty}</strong></td>
           <td>${escapeHtml(loadOrderLabel(p.loadOrder))}</td>
           <td>${escapeHtml(zoneLabel(p.zone))}</td>
@@ -1098,9 +1136,9 @@ const App = (() => {
       : String(v);
     // CSV headers always use Korean+units for cross-tool compatibility (the
     // import side recognizes them via the multilingual alias matcher).
-    const header = '코드,제품명,L (mm),W (mm),H (mm),중량 (kg),수량,순번,구역';
+    const header = '코드,제품명,L (mm),W (mm),H (mm),바닥면,중량 (kg),수량,순번,구역';
     const rows = products.map(p =>
-      [p.code, p.name, p.L, p.W, p.H, p.weight, p.qty, p.loadOrder || '자유', p.zone || 'any'].map(escape).join(','));
+      [p.code, p.name, p.L, p.W, p.H, floorFaceLabel(p.floorFace), p.weight, p.qty, p.loadOrder || '자유', p.zone || 'any'].map(escape).join(','));
     const csv = '﻿' + header + '\n' + rows.join('\n') + '\n';
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -1130,12 +1168,14 @@ const App = (() => {
     const body = $('#productBody');
     body.innerHTML = '';
     const zoneOpts = ['any', 'nose'];
+    const floorFaceOpts = ['auto', 'LW', 'LH', 'WH'];
     const orderMax = products.length;
     products.forEach((p, idx) => {
       const tr = document.createElement('tr');
       const color = PALETTE[idx % PALETTE.length];
       const curZone = normalizeZoneValue(p.zone);
       const curOrder = normalizeLoadOrderValue(p.loadOrder);
+      const curFloorFace = normalizeFloorFaceValue(p.floorFace);
       const usedByOthers = new Set(products
         .filter((_, j) => j !== idx)
         .map(x => normalizeLoadOrderValue(x.loadOrder))
@@ -1150,6 +1190,9 @@ const App = (() => {
       const zoneSelect = `<select class="col-zone" data-id="${p.id}" data-f="zone">` +
         zoneOpts.map(z => `<option value="${z}"${z === curZone ? ' selected' : ''}>${escapeHtml(t('zone_' + z))}</option>`).join('') +
         `</select>`;
+      const floorFaceSelect = `<select class="col-floor-face" data-id="${p.id}" data-f="floorFace">` +
+        floorFaceOpts.map(v => `<option value="${v}"${v === curFloorFace ? ' selected' : ''}>${escapeHtml(floorFaceLabel(v))}</option>`).join('') +
+        `</select>`;
       // Up-arrow button: moves this row one slot earlier in the list.
       // Disabled on the first row since there's nowhere to go.
       const moveUpBtn = idx === 0
@@ -1162,6 +1205,7 @@ const App = (() => {
         <td><input data-id="${p.id}" data-f="L" type="number" min="1" step="1" value="${p.L}"></td>
         <td><input data-id="${p.id}" data-f="W" type="number" min="1" step="1" value="${p.W}"></td>
         <td><input data-id="${p.id}" data-f="H" type="number" min="1" step="1" value="${p.H}"></td>
+        <td>${floorFaceSelect}</td>
         <td><input data-id="${p.id}" data-f="weight" type="number" min="0" step="0.1" value="${p.weight}"></td>
         <td><input class="col-qty" data-id="${p.id}" data-f="qty" type="number" min="0" step="1" value="${p.qty}"></td>
         <td>${orderSelect}</td>
@@ -1215,6 +1259,17 @@ const App = (() => {
         const p = products.find(x => x.id === id);
         if (!p) return;
         p.zone = normalizeZoneValue(e.target.value);
+        autoSave();
+        markSimStale('products');
+      });
+    });
+
+    body.querySelectorAll('select.col-floor-face').forEach(sel => {
+      sel.addEventListener('change', e => {
+        const id = +e.target.dataset.id;
+        const p = products.find(x => x.id === id);
+        if (!p) return;
+        p.floorFace = normalizeFloorFaceValue(e.target.value);
         autoSave();
         markSimStale('products');
       });
@@ -1408,6 +1463,7 @@ const App = (() => {
           color,
           zone: normalizeZoneValue(p.zone),
           loadOrder: normalizeLoadOrderValue(p.loadOrder),
+          floorFace: normalizeFloorFaceValue(p.floorFace),
         });
       }
     });
@@ -1608,7 +1664,7 @@ const App = (() => {
 
   function currentSnapshot() {
     return {
-      version: 3,
+      version: 4,
       savedAt: new Date().toISOString(),
       fleet: getFleet(),
       efficiency: parseFloat($('#efficiency').value) || 85,
@@ -1867,6 +1923,7 @@ const App = (() => {
           <td>${esc(p.code || '')}</td>
           <td>${esc(p.name || '')}</td>
           <td class="num">${p.L} × ${p.W} × ${p.H}</td>
+          <td class="center">${esc(floorFaceLabel(p.floorFace))}</td>
           <td class="num">${(p.weight || 0).toFixed(1)}</td>
           <td class="num">${p.qty.toLocaleString()}</td>
           <td class="center">${esc(loadOrderLabel(p.loadOrder))}</td>
@@ -1884,6 +1941,7 @@ const App = (() => {
             <th>${esc(t('col_code'))}</th>
             <th>${esc(t('col_name'))}</th>
             <th class="num">${esc(t('report_col_dim'))}</th>
+            <th class="center">${esc(t('col_floor_face'))}</th>
             <th class="num">${esc(t('col_weight'))}</th>
             <th class="num">${esc(t('col_qty'))}</th>
             <th class="center">${esc(t('col_load_order'))}</th>
@@ -1895,7 +1953,7 @@ const App = (() => {
         <tbody>${prodRows}</tbody>
         <tfoot>
           <tr>
-            <th colspan="5" style="text-align:right">${esc(t('report_col_subtotal'))}</th>
+            <th colspan="6" style="text-align:right">${esc(t('report_col_subtotal'))}</th>
             <th class="num">${totalQty.toLocaleString()}</th>
             <th></th>
             <th></th>
@@ -2003,6 +2061,11 @@ const App = (() => {
     const label = t(key);
     // Strip leading emoji to keep the print column compact
     return label.replace(/^[🟦🔝🚪🔚—]\s*/, '');
+  }
+
+  function floorFaceLabel(value) {
+    const face = normalizeFloorFaceValue(value);
+    return t('floor_face_' + face.toLowerCase());
   }
 
   function loadOrderLabel(value) {

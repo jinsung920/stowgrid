@@ -23,6 +23,23 @@ function rotations(L, W, H) {
   ];
 }
 
+function allowedRotations(box) {
+  const L = box.L, W = box.W, H = box.H;
+  switch (box.floorFace) {
+    case 'LW':
+      // L x W sits on the floor, so H must be vertical.
+      return [[L, H, W], [W, H, L]];
+    case 'LH':
+      // L x H sits on the floor, so W must be vertical.
+      return [[L, W, H], [H, W, L]];
+    case 'WH':
+      // W x H sits on the floor, so L must be vertical.
+      return [[W, L, H], [H, L, W]];
+    default:
+      return rotations(L, W, H);
+  }
+}
+
 function dedupeRotations(rots) {
   const seen = new Set();
   const out = [];
@@ -52,7 +69,7 @@ function loadOrderOf(box) {
 //
 // Returns a placement {box, x, y, z, dx, dy, dz} or null if it cannot fit.
 function placeOne(box, spaces, container) {
-  const rots = dedupeRotations(rotations(box.L, box.W, box.H));
+  const rots = dedupeRotations(allowedRotations(box));
   const minBoxDim = Math.min(box.L, box.W, box.H);
   const L = container.L;
   const anchorMax = zoneOf(box) === 'nose';
